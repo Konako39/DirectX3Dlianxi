@@ -34,7 +34,6 @@ bool Application_Initialize(HWND hWnd)
 	}
 
 	Game_Initialize();
-	GamePlayer_Initialize();
 
 	InputMouse_SetVisible(true);//是否显示光标
 
@@ -45,7 +44,7 @@ bool Application_Initialize(HWND hWnd)
 void Application_Finalize()
 {
 	Game_Finalize();
-	GamePlayer_Finalize();	
+
 	FlipAnimation_Finalize();
 	Sprite_Finalize();
 	Shader_Finalize();
@@ -60,15 +59,13 @@ void Application_Update(float delta_time)
 
 	FlipBookAnimation_Update(delta_time);
 	Game_Update(delta_time);
-	GamePlayer_Update(delta_time);
+
 
 
 }
 
 void Application_Draw(){
 	Direct3D_DrawBegin();
-
-	GamePlayer_Draw();
-
+	Game_Draw();
 	Direct3D_Present();
 }

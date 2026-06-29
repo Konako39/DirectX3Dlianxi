@@ -2,7 +2,10 @@
 #ifndef GAME_PLAYER_H
 #define GAME_PLAYER_H
 
-void GamePlayer_Initialize();
+#include <DirectXMath.h>
+
+
+void GamePlayer_Initialize(float startX, float startY);
 void GamePlayer_Finalize();
 
 
