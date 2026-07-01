@@ -22,7 +22,7 @@ void GamePlayer_Initialize(float startX, float startY)
 	g_TextureId_Player = Texture_Load(L"Player.png");
 	g_PlayerPosition = { startX, startY };
 	g_Player_MoveSpeed = 500.0f;
-	g_Player_TextureSize = 128.0f;
+	g_Player_TextureSize = 160.0f;
 	ShortSpeed = 0.5f;
 }
 
@@ -100,7 +100,7 @@ void GamePlayer_Update(float delta_time)
 	if (InputKeyboard_IsRepeat(KK_SPACE,1.0f,ShortSpeed)){
 		GamePlayerBullet_Create(
 			g_PlayerPosition.x+ g_Player_TextureSize * 0.5f,
-			g_PlayerPosition.y+ g_Player_TextureSize * 0.5f);
+			g_PlayerPosition.y+ g_Player_TextureSize * 0.2f);
 	}
 
 }
