@@ -138,6 +138,7 @@
     <ClCompile Include="animationFlip.cpp" />
     <ClCompile Include="animationFlip.h" />
     <ClCompile Include="application.cpp" />
+    <ClCompile Include="collision.cpp" />
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="game_Enemy.cpp" />
@@ -156,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.h" />
+    <ClInclude Include="collision.h" />
     <ClInclude Include="debug_ostream.h" />
     <ClInclude Include="direct3d.h" />
     <ClInclude Include="game.h" />

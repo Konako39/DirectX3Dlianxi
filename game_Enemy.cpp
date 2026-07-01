@@ -12,9 +12,19 @@
 static float EnemySpawnTimer{ 0.0f };
 static constexpr float EnemySpawnTime{ 5.0f };
 
+enum EnemyState {
+
+	EnemyState_Spawn,
+	EnemyState_Normal,
+	EnemyState_Retuen,
+	EnemyState_Dead,
+
+
+};
+
 struct EnemySpriteInfo {
 	int textureId;
-	float EnemySpeed;
+	float EnemySpeed;	
 	float Enemy_WIDTH;
 	float Enemy_HEIGHT;
 };
@@ -24,8 +34,14 @@ struct Enemy
 	EnemyType Type;
 	float position_x;
 	float position_y;
+
 	float base_y;
 	float create_time;
+
+	bool isDead;
+
+	EnemyState state;
+
 };
 
 void UpdateEnemyPosition(Enemy& enemy, float delta_time);
@@ -94,23 +110,34 @@ void GameEnemy_Update(float delta_time)
 
 
 
-
-
 	for (int i = 0; i < g_Enemy_Count; ++i) {
 		const EnemySpriteInfo& info = GetEnemySpriteInfo(g_Enemies[i].Type);
 		UpdateEnemyPosition(g_Enemies[i], delta_time);
 	}
 
 
-
-
+	//这里是总体敌人回收，只要超过屏幕了就回收
 	for (int i = g_Enemy_Count - 1; i >= 0; --i) {
 		const EnemySpriteInfo& info = GetEnemySpriteInfo(g_Enemies[i].Type);
-		if (g_Enemies[i].position_x + info.Enemy_WIDTH <= 0.0f) {
+		if (g_Enemies[i].position_x + info.Enemy_WIDTH <= 0.0f) {//这里+一个宽相当于把坐标点改到敌人贴图的右上角了
+			g_Enemies[i].isDead = true;
+		}
+	}
+
+	for (int i = g_Enemy_Count - 1; i >= 0; --i) {
+		if (g_Enemies[i].isDead)
+		{
 			g_Enemies[i] = g_Enemies[--g_Enemy_Count];
 		}
 	}
+
+
+
 }
+
+
+
+
 
 void GameEnemy_Draw()
 {
@@ -138,7 +165,10 @@ void GameEnemy_Create(EnemyType type, float x, float y)
 	r.position_x = x;
 	r.position_y = y;
 	r.base_y = y;
+	r.isDead = false;
 	r.create_time = Game_GetAccumulatedTime();
+
+	r.state = EnemyState_Spawn;
 
 	++g_Enemy_Count;
 }
@@ -150,17 +180,47 @@ void UpdateEnemyPosition(Enemy& enemy, float delta_time)
 
 	switch (enemy.Type)
 	{
-	case EnemyType_NormalMonster:
+		case EnemyType_NormalMonster:
 		enemy.position_x -= info.EnemySpeed * delta_time;
 		break;
-	case EnemyType_SpeedMonster:
-	{
-		float time = Game_GetAccumulatedTime() - enemy.create_time;
-		enemy.position_x -= info.EnemySpeed * delta_time;
-		enemy.position_y = enemy.base_y + sinf(time * 2) * 200.0f;
-		break;
-	}
+
+		case EnemyType_SpeedMonster:{
+			float time = Game_GetAccumulatedTime() - enemy.create_time;
+
+			switch (enemy.state) 
+			{
+				case EnemyState_Spawn:
+				enemy.position_x -= info.EnemySpeed * delta_time;
+				if (time >= 3.0f) {
+					enemy.state = EnemyState_Normal;
+				}
+				break;
+
+				case EnemyState_Normal:
+					enemy.position_x -= info.EnemySpeed * delta_time;
+					enemy.position_y = enemy.base_y + sinf(time * 2) * 200.0f;
+					if (time >= 6.0f) {
+						enemy.state = EnemyState_Retuen;
+					}
+					break;
+
+				case EnemyState_Retuen:
+					if (time >= 9.0f) {
+						enemy.position_x -= info.EnemySpeed * delta_time;
+					}
+					else
+						enemy.position_x += info.EnemySpeed*0.5f * delta_time;
+					enemy.position_y = enemy.base_y + sinf(time * 2) * 200.0f;
+					break;
+
+				default:
+				break;
+			}
+		}
+			break;
+
 	default:
 		break;
+
 	}
 }
