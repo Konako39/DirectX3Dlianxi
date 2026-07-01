@@ -1,67 +1,112 @@
 #include "game_Enemy.h"
 #include <DirectXMath.h>
+#include <cstdlib>
+#include <ctime>
 #include "direct3d.h"
 #include "sprite.h"
 #include "textureManager.h"
+#include "game.h"
+#include "Math.h"
 
+//µĞÈË³öÏÖ¼ÆÊ±Æ÷
+static float EnemySpawnTimer{ 0.0f };
+static constexpr float EnemySpawnTime{ 5.0f };
 
-static int g_TextureId_Enemy{ TEXTURE_INVALID_ID };
-
-static int g_Enemy_Count = 0;
-
-//æ•Œäººå‡ºç°è®¡æ—¶
-float EnemySpawnTimer{ 0 };
-float EnemySpawnTime{ 5.0f };
-
+struct EnemySpriteInfo {
+	int textureId;
+	float EnemySpeed;
+	float Enemy_WIDTH;
+	float Enemy_HEIGHT;
+};
 
 struct Enemy
 {
-	float position_x, position_y;
+	EnemyType Type;
+	float position_x;
+	float position_y;
+	float base_y;
+	float create_time;
 };
 
-static constexpr int Enemy_MAX{ 128 };
-static Enemy g_Enemies[Enemy_MAX]{};
+void UpdateEnemyPosition(Enemy& enemy, float delta_time);
+static constexpr int ENEMY_MAX{ 128 };
+static constexpr int ENEMY_TYPE_MAX{ EnemyType_SpeedMonster + 1 };
 
-static constexpr float Enemy_WIDTH{ 192.0f };
-static constexpr float Enemy_HEIGHT{ 192.0f };
+static Enemy g_Enemies[ENEMY_MAX]{};
+static int g_Enemy_Count{ 0 };
+
+static EnemySpriteInfo g_EnemySpriteInfoes[ENEMY_TYPE_MAX]{
+	{ TEXTURE_INVALID_ID, 100.0f, 192.0f, 192.0f }, // NormalMonster
+	{ TEXTURE_INVALID_ID, 250.0f, 128.0f, 128.0f }, // SpeedMonster
+};
+
+static const wchar_t* ENEMY_TEXTURE_FILENAMES[ENEMY_TYPE_MAX]{
+	L"Enemy.png",
+	L"Enemy.png",
+};
 
 
-//æ•Œäººç§»åŠ¨é€Ÿåº¦
-static float EnemySpeed{ 0 };
-
-//å±å¹•è¾¹ç¼˜ æ•Œäººç§»åŠ¨æœ€å¤§å€¼
-static constexpr float Enemy_Move_LIMIT{ 0 - Enemy_WIDTH };
-
-
+static const EnemySpriteInfo& GetEnemySpriteInfo(EnemyType type)
+{
+	return g_EnemySpriteInfoes[type];
+}
 
 void GameEnemy_Initialize()
 {
-	g_TextureId_Enemy = Texture_Load(L"enemy.png");
-	EnemySpeed = 100.0f;
+	for (int i = 0; i < ENEMY_TYPE_MAX; ++i) {
+		g_EnemySpriteInfoes[i].textureId = Texture_Load(ENEMY_TEXTURE_FILENAMES[i]);
+	}
+
 	g_Enemy_Count = 0;
+	EnemySpawnTimer = 0.0f;
+
+	std::srand(static_cast<unsigned>(std::time(nullptr)));
 }
 
 void GameEnemy_Finalize()
 {
-
-
+	for (int i = 0; i < ENEMY_TYPE_MAX; ++i) {
+		Texture_Release(g_EnemySpriteInfoes[i].textureId);
+		g_EnemySpriteInfoes[i].textureId = TEXTURE_INVALID_ID;
+	}
 }
 
 void GameEnemy_Update(float delta_time)
 {
 	EnemySpawnTimer += delta_time;
 	if (EnemySpawnTimer >= EnemySpawnTime) {
-		EnemySpawnTimer = 0;
-		GameEnemy_Create(SCREEN_WIDTH, rand() % (SCREEN_HEIGHT - (int)Enemy_HEIGHT));
+		EnemySpawnTimer = 0.0f;
+
+		const int randomType = std::rand() % ENEMY_TYPE_MAX;
+		const EnemyType type = static_cast<EnemyType>(randomType);
+		//ÕâÀï´«ÈëµĞÈËÀàĞÍ£¬¿ÉÔÚÕâÀïËæ»úÉú³É²»Í¬ÀàĞÍµÄµĞÈË,°ÑÕâ¸öint½âÊÍÎªEnemyTypeÀàĞÍ
+
+		const EnemySpriteInfo& info = GetEnemySpriteInfo(type);
+
+		const int spawnRange = static_cast<int>(SCREEN_HEIGHT - info.Enemy_HEIGHT);
+		const float spawnY = spawnRange > 0 ? static_cast<float>(std::rand() % spawnRange) : 0.0f;
+		//·­ÒëÒ»ÏÂ¾ÍÊÇËæ»ú³öy×ø±êºó£¬ÅĞ¶ÏÊÇ·ñ´óÓÚ0£¬Èç¹û´óÓÚ0¾ÍËæ»úÉú³ÉÒ»¸öy×ø±ê£¬Èç¹ûĞ¡ÓÚ0¾ÍÖ±½ÓÎª0
+		//static_castÊÇÇ¿ÖÆÀàĞÍ×ª»»£¬std::rand() % spawnRangeÊÇËæ»úÉú³ÉÒ»¸ö0µ½spawnRangeÖ®¼äµÄÕûÊı	
+
+		GameEnemy_Create(type, static_cast<float>(SCREEN_WIDTH), spawnY);
+		//´«ÈëÀàĞÍ£¬ÆÁÄ»¿í¶È£¬Ëæ»ú³öÀ´µÄY
 	}
 
-	//æ•Œäººä¸€ç›´å¾€å³èµ°
+
+
+
+
 	for (int i = 0; i < g_Enemy_Count; ++i) {
-		g_Enemies[i].position_x -= EnemySpeed * delta_time;
+		const EnemySpriteInfo& info = GetEnemySpriteInfo(g_Enemies[i].Type);
+		UpdateEnemyPosition(g_Enemies[i], delta_time);
 	}
-	//å‡ºç”»é¢äº†å›æ”¶ destory
+
+
+
+
 	for (int i = g_Enemy_Count - 1; i >= 0; --i) {
-		if (g_Enemies[i].position_x <= Enemy_Move_LIMIT) {
+		const EnemySpriteInfo& info = GetEnemySpriteInfo(g_Enemies[i].Type);
+		if (g_Enemies[i].position_x + info.Enemy_WIDTH <= 0.0f) {
 			g_Enemies[i] = g_Enemies[--g_Enemy_Count];
 		}
 	}
@@ -70,24 +115,52 @@ void GameEnemy_Update(float delta_time)
 void GameEnemy_Draw()
 {
 	for (int i = 0; i < g_Enemy_Count; ++i) {
+		const EnemySpriteInfo& info = GetEnemySpriteInfo(g_Enemies[i].Type);
+
 		Sprite_Draw(
-			g_TextureId_Enemy,
-			g_Enemies[i].position_x,
-			g_Enemies[i].position_y,
-			Enemy_WIDTH,
-			Enemy_HEIGHT
-		);
+				info.textureId,
+				g_Enemies[i].position_x,
+				g_Enemies[i].position_y,
+				info.Enemy_WIDTH,
+				info.Enemy_HEIGHT);
+
 	}
 }
 
-void GameEnemy_Create(float x, float y)
+void GameEnemy_Create(EnemyType type, float x, float y)
 {
-	if (g_Enemy_Count >= Enemy_MAX) {
+	if (g_Enemy_Count >= ENEMY_MAX) {
 		return;
 	}
 
 	Enemy& r = g_Enemies[g_Enemy_Count];
+	r.Type = type;
 	r.position_x = x;
 	r.position_y = y;
+	r.base_y = y;
+	r.create_time = Game_GetAccumulatedTime();
+
 	++g_Enemy_Count;
+}
+
+//ÕâÀï¶¨ÒåÃ¿¸öµĞÈËµÄÒÆ¶¯·½Ê½
+void UpdateEnemyPosition(Enemy& enemy, float delta_time)
+{
+	const EnemySpriteInfo& info = GetEnemySpriteInfo(enemy.Type);
+
+	switch (enemy.Type)
+	{
+	case EnemyType_NormalMonster:
+		enemy.position_x -= info.EnemySpeed * delta_time;
+		break;
+	case EnemyType_SpeedMonster:
+	{
+		float time = Game_GetAccumulatedTime() - enemy.create_time;
+		enemy.position_x -= info.EnemySpeed * delta_time;
+		enemy.position_y = enemy.base_y + sinf(time * 2) * 200.0f;
+		break;
+	}
+	default:
+		break;
+	}
 }

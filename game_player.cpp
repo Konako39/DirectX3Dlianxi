@@ -84,9 +84,9 @@ void GamePlayer_Update(float delta_time)
 		g_PlayerPosition.y = SCREEN_HEIGHT- g_Player_TextureSize;
 	}
 
-	if (g_PlayerPosition.x <0)
+	if (g_PlayerPosition.x <0 - g_Player_TextureSize * 0.5)
 	{
-		g_PlayerPosition.x =0;
+		g_PlayerPosition.x = 0 - g_Player_TextureSize * 0.5;
 	}
 	if (g_PlayerPosition.y < 0)
 	{
